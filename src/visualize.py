@@ -1,16 +1,12 @@
-import random
-import streamlit as st
+import json
+from pathlib import Path
 from pyvis.network import Network
-import networkx as nx
-import tempfile
-import os
-from graph import MovieGraph
+import time
 
-# Configure page layout
-st.set_page_config(layout='wide')
-st.title('Movie Constellation Map')
+# Define the path to the JSON file
+json_path = Path(__file__).parent.parent / "data" / "movie_graph.json"
 
-# Define genre colors and default color
+# Genre color mapping
 GENRE_COLORS = {
     'Action': '#FF5733',
     'Comedy': '#33FF57',
@@ -42,72 +38,110 @@ GENRE_COLORS = {
     'Adult': '#FF33C1',
     'N/A': '#808080'
 }
-DEFAULT_COLOR = '#FFFFFF'
+DEFAULT_COLOR = '#1f78b4'
 
-# Try to load and build the graph
-try:
-    # Load saved graph data
-    graph = MovieGraph.load_from_json('data/movie_graph.json')
-    G = nx.Graph()
+# Load the JSON data
+def load_graph():
+    print("Loading graph data from JSON file...")
+    start = time.time()
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    print(f"JSON data loaded in {time.time() - start:.2f} seconds")
+    return data
 
-    # Select 100 random movies
-    all_movies = graph.get_all_nodes()
-    random_movies = random.sample(all_movies, min(100, len(all_movies)))
+print("Starting visualization process...")
+movie_graph = load_graph()
 
-    # Add nodes
-    for mid in random_movies:
-        md = graph.get_node_data(mid)
-        G.add_node(mid, title=md.get('title', str(mid)))
+# Create a Pyvis Network object
+print("Creating network object...")
+net = Network(notebook=False, height="100vh", width="100%", bgcolor="#222222", font_color="white", cdn_resources='remote')
 
-    # Add edges between the selected movies
-    for mid in random_movies:
-        for nbr, wt in graph.get_neighbors(mid):
-            if nbr in random_movies:
-                G.add_edge(mid, nbr, weight=wt)
+# Use all 1000 movies for the graph
+nodes_data = movie_graph["nodes_data"][:1000]
+adj_list = movie_graph["adj_list"][:1000]
+total_nodes = len(nodes_data)
+print(f"Processing {total_nodes} nodes...")
 
-    # Create pyvis network
-    net = Network(
-        height='800px', width='100%', bgcolor='#111111', font_color='white', cdn_resources='remote'
-    )
+# Add nodes with color based on primary genre
+start_time = time.time()
+for idx, movie in enumerate(nodes_data):
+    label = movie.get("title", f"Movie {idx+1}")
+    genres = movie.get("genres", [])
+    primary_genre = genres[0] if genres else 'N/A'
+    color = GENRE_COLORS.get(primary_genre, DEFAULT_COLOR)
+    tooltip = f"<b>{label}</b><br>Genre: {primary_genre}"
+    net.add_node(idx, label=label, title=tooltip, color=color, size=15)
+    
+    if (idx + 1) % 100 == 0:
+        print(f"Added {idx + 1}/{total_nodes} nodes ({(idx + 1)/total_nodes*100:.1f}%)...")
 
-    # Enable physics for better layout
-    net.toggle_physics(True)
+print(f"All nodes added in {time.time() - start_time:.2f} seconds")
 
-    # Add nodes with fixed positions and genre colors
-    for node in G.nodes():
-        attrs = G.nodes[node]
-        movie_data = graph.get_node_data(node)
-        title = movie_data.get('title', str(node))
-        primary = movie_data.get('genres', [None])[0]
-        color = GENRE_COLORS.get(primary, DEFAULT_COLOR)
+# Add edges (only between the first 1000 nodes)
+print("Adding edges...")
+edge_count = 0
+start_time = time.time()
+for idx, neighbors in enumerate(adj_list):
+    for neighbor in neighbors:
+        neighbor_id = neighbor[0]
+        weight = neighbor[1]
+        if neighbor_id < 1000:  # Only connect within the first 1000 nodes
+            edge_width = weight / 20
+            net.add_edge(idx, neighbor_id, width=edge_width, title=f"Similarity: {weight:.2f}")
+            edge_count += 1
+    
+    if (idx + 1) % 100 == 0:
+        print(f"Processed edges for {idx + 1}/{total_nodes} nodes, added {edge_count} edges so far...")
 
-        # Add a tooltip with the 5 most similar movies
-        neighbors = graph.get_neighbors(node)
-        neighbors = sorted(neighbors, key=lambda x: x[1], reverse=True)[:5]  # Top 5 neighbors by weight
-        tooltip = f"<b>{title}</b><br>Most Similar Movies:<br>"
-        for neighbor_id, weight in neighbors:
-            neighbor_data = graph.get_node_data(neighbor_id)
-            tooltip += f"- {neighbor_data.get('title', 'Unknown')} (Similarity: {weight})<br>"
+print(f"All edges added in {time.time() - start_time:.2f} seconds. Total edges: {edge_count}")
 
-        net.add_node(
-            node, 
-            label=title, 
-            title=tooltip,  # Tooltip with similar movies
-            color=color, 
-            size=20  # Increase node size for better visibility
-        )
+# Set custom physics options for the network
+print("Setting network options...")
 
-    # Add edges with weight-based width
-    for u, v, data in G.edges(data=True):
-        w = data['weight']
-        net.add_edge(u, v, width=w/5, title=f"Similarity: {w}/10")
+# **DOUBLE-CHECKED FOR ALL DOUBLE QUOTES AROUND KEYS**
+net.set_options('''{
+  "physics": {
+    "enabled": true,
+    "forceAtlas2Based": {
+      "gravitationalConstant": -50,
+      "centralGravity": 0.005,
+      "springLength": 50,
+      "springConstant": 0.05,
+      "avoidOverlap": 0.5
+    },
+    "maxVelocity": 5,
+    "minVelocity": 0.1,
+    "solver": "forceAtlas2Based",
+    "stabilization": {
+      "enabled": true,
+      "iterations": 1000,
+      "updateInterval": 25,
+      "fit": true
+    }
+  },
+  "interaction": {
+    "hover": true,
+    "zoomView": true,
+    "dragNodes": true,
+    "navigationButtons": true
+  },
+  "nodes": {
+    "font": {"size": 14, "color": "white", "strokeWidth": 0, "strokeColor": "#333333"},
+    "shape": "dot"
+  },
+  "edges": {
+    "color": {"inherit": "from"},
+    "smooth": {"enabled": true, "type": "continuous", "roundness": 0.5}
+  },
+  "configure": {
+    "enabled": true,
+    "filter": ["physics", "nodes", "edges", "interaction"]
+  }
+}''')
 
-    # Generate and display HTML
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
-        net.save_graph(tmp.name)
-        html = open(tmp.name, 'r', encoding='utf-8').read()
-    st.components.v1.html(html, height=820, scrolling=True)
-    os.remove(tmp.name)
-
-except Exception as e:
-    st.error(f"Error generating graph: {e}")
+# Show the network (generates and opens an HTML file)
+print("Generating HTML file...")
+start_time = time.time()
+net.show("1000_movies.html", notebook=False)
+print(f"HTML file generated in {time.time() - start_time:.2f} seconds")
+print("Done! Open 1000_movies.html in your browser to view the graph.")
