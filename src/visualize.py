@@ -1,138 +1,124 @@
-import json
+import time
 from pathlib import Path
 from pyvis.network import Network
-import time
 
-# Define the path to the JSON file
-json_path = Path(__file__).parent.parent / "data" / "movie_graph.json"
+# Import modular components - use absolute imports for better compatibility
+from src.constants import NETWORK_OPTIONS
+from src.graph_utils import load_graph, prepare_similar_movies, JSON_PATH
+from src.network_builder import add_nodes_to_network, add_edges_to_network
+from src.html_enhancer import enhance_html_with_search as enhance_html
 
-# Genre color mapping
-GENRE_COLORS = {
-    'Action': '#FF5733',
-    'Comedy': '#33FF57',
-    'Drama': '#3357FF',
-    'Fantasy': '#F333FF',
-    'Horror': '#FF33A1',
-    'Romance': '#FF33B5',
-    'Thriller': '#33FFF5',
-    'Science Fiction': '#FF8333',
-    'Documentary': '#33FF8A',
-    'Animation': '#FF3385',
-    'Mystery': '#B533FF',
-    'Western': '#FF33D4',
-    'Crime': '#33FFD4',
-    'Family': '#FF33A8',
-    'Adventure': '#33FF57',
-    'Biography': '#FF33C1',
-    'History': '#FF5733',
-    'Musical': '#FF33F0',
-    'Sport': '#33FF57',
-    'War': '#FF3333',
-    'Film Noir': '#B533FF',
-    'Short Film': '#FF33D4',
-    'News': '#33FFD4',
-    'Reality-TV': '#FF33A8',
-    'Talk-Show': '#33FF57',
-    'Game-Show': '#FF5733',
-    'Variety': '#FF33F0',
-    'Adult': '#FF33C1',
-    'N/A': '#808080'
-}
-DEFAULT_COLOR = '#1f78b4'
+# These functions have been moved to other modules
+# See:
+# - graph_utils.py for load_graph and prepare_similar_movies
+# - network_builder.py for create_movie_tooltip, add_nodes_to_network, and add_edges_to_network
 
-# Load the JSON data
-def load_graph():
-    print("Loading graph data from JSON file...")
-    start = time.time()
-    with open(json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    print(f"JSON data loaded in {time.time() - start:.2f} seconds")
-    return data
-
-print("Starting visualization process...")
-movie_graph = load_graph()
-
-# Create a Pyvis Network object
-print("Creating network object...")
-net = Network(notebook=False, height="100vh", width="100%", bgcolor="#222222", font_color="white", cdn_resources='remote')
-
-# Use 250 movies for the graph
-nodes_data = movie_graph["nodes_data"][:250]
-adj_list = movie_graph["adj_list"][:250]
-total_nodes = len(nodes_data)
-print(f"Processing {total_nodes} nodes...")
-
-# Add nodes with color based on primary genre
-start_time = time.time()
-for idx, movie in enumerate(nodes_data):
-    label = movie.get("title", f"Movie {idx+1}")
-    genres = movie.get("genres", [])
-    primary_genre = genres[0] if genres else 'N/A'
-    color = GENRE_COLORS.get(primary_genre, DEFAULT_COLOR)
-    tooltip = f"<b>{label}</b><br>Genre: {primary_genre}"
-    net.add_node(idx, label=label, title=tooltip, color=color, size=15)
+def configure_network_options(net):
+    """Configure the network visualization options.
     
-    if (idx + 1) % 100 == 0:
-        print(f"Added {idx + 1}/{total_nodes} nodes ({(idx + 1)/total_nodes*100:.1f}%)...")
-
-print(f"All nodes added in {time.time() - start_time:.2f} seconds")
-
-# Add edges (only between the first 1000 nodes)
-print("Adding edges...")
-edge_count = 0
-start_time = time.time()
-for idx, neighbors in enumerate(adj_list):
-    for neighbor in neighbors:
-        neighbor_id = neighbor[0]
-        weight = neighbor[1]
-        if neighbor_id < 250:  # Only connect within the 250 nodes
-            edge_width = weight / 20
-            net.add_edge(idx, neighbor_id, width=edge_width, title=f"Similarity: {weight:.2f}")
-            edge_count += 1
+    Args:
+        net (Network): Pyvis Network object
+        
+    Returns:
+        None
+    """
+    # Enable the physics buttons
+    net.show_buttons(filter_=['physics'])
     
-    if (idx + 1) % 100 == 0:
-        print(f"Processed edges for {idx + 1}/{total_nodes} nodes, added {edge_count} edges so far...")
+    # Set physics options and other network configurations using the constant
+    net.set_options(NETWORK_OPTIONS)
 
-print(f"All edges added in {time.time() - start_time:.2f} seconds. Total edges: {edge_count}")
+# These functions are not needed anymore since we're using the modular approach
+# def get_search_css():
+#     """Get the CSS for the search functionality.
+#     Deprecated: Now loaded from separate file.
+#     Returns:
+#         str: Empty string
+#     """
+#     return ""
+# 
+# def get_search_html():
+#     """Get the HTML for the search functionality.
+#     Deprecated: Now loaded from separate file.
+#     Returns:
+#         str: Empty string
+#     """
+#     return ""
+# 
+# def get_search_js():
+#     """Get the JavaScript for the search functionality.
+#     Deprecated: Now loaded from separate file.
+#     Returns:
+#         str: Empty string
+#     """
+#     return ""
+# 
+# # This function is not needed anymore
+# def enhance_html_with_search(filename):
+#     """Enhance the HTML file with search functionality.
+#     Deprecated: Use html_enhancer.enhance_html_with_search instead.
+#     """
+#     print("Warning: Using deprecated enhance_html_with_search function in visualize.py.")
+#     print("Please use the function from html_enhancer.py instead.")
+#     enhance_html(filename)
 
-# Show the network (generates and opens an HTML file)
-print("Generating HTML file...")
-start_time = time.time()
-# Set new physics options and show the network
-net.set_options('''{
-  "physics": {
-    "enabled": true,
-    "forceAtlas2Based": {
-      "theta": 0.1,
-      "gravitationalConstant": -179,
-      "centralGravity": 0.035,
-      "springLength": 360,
-      "springConstant": 0.645,
-      "damping": 0.9,
-      "avoidOverlap": 1
-    },
-    "maxVelocity": 5,
-    "solver": "forceAtlas2Based",
-    "timestep": 0.06,
-    "wind": {
-      "x": 0.8
-    }
-  },
-  "interaction": {
-    "hover": true,
-    "zoomView": true,
-    "dragNodes": true,
-    "navigationButtons": true
-  },
-  "nodes": {
-    "font": {"size": 14, "color": "white", "strokeWidth": 0, "strokeColor": "#333333"},
-    "shape": "dot"
-  },
-  "edges": {
-    "color": {"inherit": "from"},
-    "smooth": {"enabled": true, "type": "continuous", "roundness": 0.5}
-  }
-}''')
-net.show("250_movies.html", notebook=False)
-print(f"HTML file generated in {time.time() - start_time:.2f} seconds")
-print("Done! Open 250_movies.html in your browser to view the graph.")
+def create_movie_network(movie_limit=250, output_filename=None):
+    """Create a network visualization of movies.
+    
+    Args:
+        movie_limit (int): Number of movies to include in the visualization
+        output_filename (str, optional): Name of the output HTML file
+        
+    Returns:
+        str: Path to the generated HTML file
+    """
+    if output_filename is None:
+        output_filename = f"{movie_limit}_movies.html"
+    
+    print("Starting visualization process...")
+    movie_graph = load_graph(JSON_PATH)
+    
+    # Create a Pyvis Network object
+    print("Creating network object...")
+    net = Network(
+        notebook=False, 
+        height="100vh", 
+        width="100%", 
+        bgcolor="#222222", 
+        font_color="white", 
+        cdn_resources='remote'
+    )
+    
+    # Use specified number of movies for the graph
+    nodes_data = movie_graph["nodes_data"][:movie_limit]
+    adj_list = movie_graph["adj_list"][:movie_limit]
+    
+    # Prepare similarity data
+    top_similar_movies = prepare_similar_movies(adj_list)
+    
+    # Add nodes and edges
+    add_nodes_to_network(net, nodes_data, top_similar_movies, movie_limit)
+    add_edges_to_network(net, adj_list, movie_limit)
+    
+    # Configure network options
+    configure_network_options(net)
+    
+    # Generate the HTML file
+    print(f"Generating HTML file: {output_filename}")
+    start_time = time.time()
+    net.show(output_filename, notebook=False)
+    
+    # Enhance the HTML with search functionality
+    enhance_html(output_filename)
+    
+    print(f"HTML file generated in {time.time() - start_time:.2f} seconds")
+    print(f"Done! Open {output_filename} in your browser to view the graph with search functionality.")
+    
+    return output_filename
+
+def main():
+    """Main function to run the visualization."""
+    create_movie_network(movie_limit=250)
+
+if __name__ == "__main__":
+    main()
