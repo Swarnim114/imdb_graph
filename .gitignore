@@ -4,15 +4,35 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.Python
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables
 .env
 .env.*
-*.sqlite3
 
-# VSCode
+# IDE
 .vscode/
+.idea/
+*.swp
+*.swo
 
-# macOS
+# OS
 .DS_Store
+Thumbs.db
 
-# Jupyter
+# Project specific
+data/*.json
+*.log
+
+# Jupyter Notebook
 .ipynb_checkpoints/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
