@@ -56,9 +56,9 @@ movie_graph = load_graph()
 print("Creating network object...")
 net = Network(notebook=False, height="100vh", width="100%", bgcolor="#222222", font_color="white", cdn_resources='remote')
 
-# Use all 1000 movies for the graph
-nodes_data = movie_graph["nodes_data"][:1000]
-adj_list = movie_graph["adj_list"][:1000]
+# Use 250 movies for the graph
+nodes_data = movie_graph["nodes_data"][:250]
+adj_list = movie_graph["adj_list"][:250]
 total_nodes = len(nodes_data)
 print(f"Processing {total_nodes} nodes...")
 
@@ -85,7 +85,7 @@ for idx, neighbors in enumerate(adj_list):
     for neighbor in neighbors:
         neighbor_id = neighbor[0]
         weight = neighbor[1]
-        if neighbor_id < 1000:  # Only connect within the first 1000 nodes
+        if neighbor_id < 250:  # Only connect within the 250 nodes
             edge_width = weight / 20
             net.add_edge(idx, neighbor_id, width=edge_width, title=f"Similarity: {weight:.2f}")
             edge_count += 1
@@ -95,28 +95,27 @@ for idx, neighbors in enumerate(adj_list):
 
 print(f"All edges added in {time.time() - start_time:.2f} seconds. Total edges: {edge_count}")
 
-# Set custom physics options for the network
-print("Setting network options...")
-
-# **DOUBLE-CHECKED FOR ALL DOUBLE QUOTES AROUND KEYS**
+# Show the network (generates and opens an HTML file)
+print("Generating HTML file...")
+start_time = time.time()
+# Set new physics options and show the network
 net.set_options('''{
   "physics": {
     "enabled": true,
     "forceAtlas2Based": {
-      "gravitationalConstant": -50,
-      "centralGravity": 0.005,
-      "springLength": 50,
-      "springConstant": 0.05,
-      "avoidOverlap": 0.5
+      "theta": 0.1,
+      "gravitationalConstant": -179,
+      "centralGravity": 0.035,
+      "springLength": 360,
+      "springConstant": 0.645,
+      "damping": 0.9,
+      "avoidOverlap": 1
     },
     "maxVelocity": 5,
-    "minVelocity": 0.1,
     "solver": "forceAtlas2Based",
-    "stabilization": {
-      "enabled": true,
-      "iterations": 1000,
-      "updateInterval": 25,
-      "fit": true
+    "timestep": 0.06,
+    "wind": {
+      "x": 0.8
     }
   },
   "interaction": {
@@ -132,16 +131,8 @@ net.set_options('''{
   "edges": {
     "color": {"inherit": "from"},
     "smooth": {"enabled": true, "type": "continuous", "roundness": 0.5}
-  },
-  "configure": {
-    "enabled": true,
-    "filter": ["physics", "nodes", "edges", "interaction"]
   }
 }''')
-
-# Show the network (generates and opens an HTML file)
-print("Generating HTML file...")
-start_time = time.time()
-net.show("1000_movies.html", notebook=False)
+net.show("250_movies.html", notebook=False)
 print(f"HTML file generated in {time.time() - start_time:.2f} seconds")
-print("Done! Open 1000_movies.html in your browser to view the graph.")
+print("Done! Open 250_movies.html in your browser to view the graph.")
