@@ -1,68 +1,96 @@
 import json
-from collections import defaultdict
 
 class MovieGraph:
-    def __init__(self):
-        self.adj_list = defaultdict(list)  # movie_id -> list of (neighbor_id, weight)
-        self.nodes_data = {}  # movie_id -> movie dict
+    def __init__(self, num_nodes):
+        # Initialize a 2D list with empty lists for each node
+        self.adj_list = [[] for _ in range(num_nodes)]
+        self.nodes_data = [None] * num_nodes
 
-    def add_node(self, movie_id, movie_data):
-        self.nodes_data[movie_id] = movie_data
+    def add_node(self, node_id, movie_data):
+        # Store movie data for the node
+        self.nodes_data[node_id] = movie_data
 
     def add_edge(self, id1, id2, weight):
+        # Add an edge between id1 and id2 with the given weight
         self.adj_list[id1].append((id2, weight))
-        self.adj_list[id2].append((id1, weight))  # undirected
+        self.adj_list[id2].append((id1, weight))  # Undirected graph
 
-    def get_neighbors(self, movie_id):
-        return self.adj_list[movie_id]
+    def get_neighbors(self, node_id):
+        # Return the neighbors of the given node
+        return self.adj_list[node_id]
 
-    def get_node_data(self, movie_id):
-        return self.nodes_data.get(movie_id, None)
+    def get_node_data(self, node_id):
+        # Return the data of the given node
+        return self.nodes_data[node_id]
 
     def get_all_nodes(self):
-        return list(self.nodes_data.keys())
+        # Return all nodes that have data
+        return [i for i, data in enumerate(self.nodes_data) if data is not None]
 
     def get_num_nodes(self):
-        return len(self.nodes_data)
+        # Return the number of nodes with data
+        return len([data for data in self.nodes_data if data is not None])
 
     def get_num_edges(self):
-        return sum(len(neighs) for neighs in self.adj_list.values()) // 2
+        # Count the number of edges
+        count = 0
+        for neighbors in self.adj_list:
+            count += len(neighbors)
+        return count // 2  # Each edge is counted twice
 
     def save_to_json(self, path):
-        # Convert defaultdict to regular dict for JSON serialization
-        adj_list = {str(k): v for k, v in self.adj_list.items()}
-        nodes_data = {str(k): v for k, v in self.nodes_data.items()}
+        # Convert adjacency list and node data to JSON format
+        adj_list = []
+        for neighbors in self.adj_list:
+            adj_list.append(neighbors)
+
         with open(path, 'w') as f:
             json.dump({
                 'adj_list': adj_list,
-                'nodes_data': nodes_data
+                'nodes_data': self.nodes_data
             }, f, indent=2)
 
     @staticmethod
     def load_from_json(path):
+        # Load adjacency list and node data from JSON file
         with open(path, 'r') as f:
             data = json.load(f)
-        g = MovieGraph()
-        g.adj_list = defaultdict(list, {int(k): v for k, v in data['adj_list'].items()})
-        g.nodes_data = {int(k): v for k, v in data['nodes_data'].items()}
-        return g
+
+        graph = MovieGraph(len(data['nodes_data']))
+        graph.adj_list = data['adj_list']
+        graph.nodes_data = data['nodes_data']
+        return graph
+
+    def build_graph(self, movies, threshold=6):
+        """
+        Build the graph by adding edges between movies with similarity score > threshold.
+
+        :param movies: List of movie data dictionaries.
+        :param threshold: Minimum similarity score to create an edge.
+        """
+        # Add all movies as nodes
+        for i, movie in enumerate(movies):
+            self.add_node(i, movie)
+
+        # Compare each pair of movies and add edges if similarity score > threshold
+        for i in range(len(movies)):
+            for j in range(i + 1, len(movies)):
+                score = calculate_similarity_weight(movies[i], movies[j])
+                if score > threshold:
+                    self.add_edge(i, j, score)
 
 def calculate_similarity_weight(m1, m2):
     score = 0
-    # Genre: 3 points if at least one genre overlaps
-    if set(m1['genres']) & set(m2['genres']):
+    if len(set(m1['genres']).intersection(set(m2['genres']))) > 0:
         score += 3
-    # Rating: 3 points if ratings within 0.5
     if m1['rating'] is not None and m2['rating'] is not None:
-        if abs(m1['rating'] - m2['rating']) <= 0.5:
+        if abs(m1['rating'] - m2['rating']) <= 1.0:
             score += 3
-    # Director: 2 points if same director
-    if m1['director'] and m2['director'] and m1['director'] == m2['director']:
+    if m1['director'] == m2['director']:
         score += 2
-    # Actors: 1 point if 2 or more actors overlap
-    if len(set(m1['cast']) & set(m2['cast'])) >= 2:
+    if len(set(m1['cast']).intersection(set(m2['cast']))) >= 2:
         score += 1
-    # Year: 1 point if years within 2
-    if m1['year'] and m2['year'] and abs(m1['year'] - m2['year']) <= 2:
-        score += 1
+    if m1['year'] is not None and m2['year'] is not None:
+        if abs(m1['year'] - m2['year']) <= 5:
+            score += 2
     return score

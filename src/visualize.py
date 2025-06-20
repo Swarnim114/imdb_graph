@@ -1,3 +1,4 @@
+import random
 import streamlit as st
 from pyvis.network import Network
 import networkx as nx
@@ -5,109 +6,108 @@ import tempfile
 import os
 from graph import MovieGraph
 
-st.title("Movie Constellation Map")
+# Configure page layout
+st.set_page_config(layout='wide')
+st.title('Movie Constellation Map')
 
-# Load the saved graph
-try:
-    st.info("Loading graph from data/movie_graph.json...")
-    graph = MovieGraph.load_from_json("data/movie_graph.json")
-    st.success(f"Loaded graph with {graph.get_num_nodes()} nodes and {graph.get_num_edges()} edges")
-except Exception as e:
-    st.error(f"Error loading graph: {str(e)}")
-    st.stop()
-
-# Sidebar for filtering
-st.sidebar.title("Visualization Options")
-num_movies = st.sidebar.slider("Number of movies to show", 10, 100, 20)
-min_weight = st.sidebar.slider("Minimum similarity score", 1, 10, 3)
-
-# Build NetworkX graph from MovieGraph (with limits)
-st.info("Building network visualization...")
-G = nx.Graph()
-
-# Get top N movies by number of connections
-movie_connections = {movie_id: len(neighbors) for movie_id, neighbors in graph.adj_list.items()}
-top_movies = sorted(movie_connections.items(), key=lambda x: x[1], reverse=True)[:num_movies]
-top_movie_ids = [movie_id for movie_id, _ in top_movies]
-
-# Add nodes for top movies
-for movie_id in top_movie_ids:
-    movie_data = graph.get_node_data(movie_id)
-    G.add_node(movie_id, label=movie_data["title"])
-    
-# Add edges between these movies
-for movie_id in top_movie_ids:
-    neighbors = graph.get_neighbors(movie_id)
-    for neighbor_id, weight in neighbors:
-        if neighbor_id in top_movie_ids and weight >= min_weight:
-            G.add_edge(movie_id, neighbor_id, weight=weight)
-
-st.success(f"NetworkX graph built with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
-
-# Pyvis network with stabilization
-net = Network(
-    height="700px",
-    width="100%",
-    bgcolor="#222222",
-    font_color="white",
-    directed=False
-)
-
-# Configure physics for stability
-net.set_options("""
-{
-  "physics": {
-    "stabilization": {
-      "enabled": true,
-      "iterations": 100,
-      "updateInterval": 100,
-      "fit": true
-    },
-    "barnesHut": {
-      "gravitationalConstant": -10000,
-      "springConstant": 0.01,
-      "springLength": 200,
-      "centralGravity": 0.1,
-      "damping": 0.95
-    }
-  },
-  "edges": {
-    "smooth": {
-      "type": "continuous",
-      "forceDirection": "none"
-    }
-  }
+# Define genre colors and default color
+GENRE_COLORS = {
+    'Action': '#FF5733',
+    'Comedy': '#33FF57',
+    'Drama': '#3357FF',
+    'Fantasy': '#F333FF',
+    'Horror': '#FF33A1',
+    'Romance': '#FF33B5',
+    'Thriller': '#33FFF5',
+    'Science Fiction': '#FF8333',
+    'Documentary': '#33FF8A',
+    'Animation': '#FF3385',
+    'Mystery': '#B533FF',
+    'Western': '#FF33D4',
+    'Crime': '#33FFD4',
+    'Family': '#FF33A8',
+    'Adventure': '#33FF57',
+    'Biography': '#FF33C1',
+    'History': '#FF5733',
+    'Musical': '#FF33F0',
+    'Sport': '#33FF57',
+    'War': '#FF3333',
+    'Film Noir': '#B533FF',
+    'Short Film': '#FF33D4',
+    'News': '#33FFD4',
+    'Reality-TV': '#FF33A8',
+    'Talk-Show': '#33FF57',
+    'Game-Show': '#FF5733',
+    'Variety': '#FF33F0',
+    'Adult': '#FF33C1',
+    'N/A': '#808080'
 }
-""")
+DEFAULT_COLOR = '#FFFFFF'
 
-net.from_nx(G)
+# Try to load and build the graph
+try:
+    # Load saved graph data
+    graph = MovieGraph.load_from_json('data/movie_graph.json')
+    G = nx.Graph()
 
-# Configure nodes and edges
-for node in net.nodes:
-    movie_data = graph.get_node_data(int(node["id"]))
-    node["title"] = f"{movie_data['title']} ({movie_data['year']})\nRating: {movie_data['rating']}"
-    node["size"] = 10  # Smaller fixed size
-    node["color"] = "#97c2fc"
-    node["font"] = {"size": 12}  # Smaller font
-    
-for edge in net.edges:
-    edge["color"] = {"color": "#cccccc", "opacity": 0.2}  # More subtle edges
-    src = edge["from"]
-    dst = edge["to"]
-    try:
-        weight = G[src][dst].get("weight", 1)
-    except:
-        weight = 1
-    edge["width"] = weight / 2  # Thinner edges
-    edge["title"] = f"Similarity: {weight}"
+    # Select 100 random movies
+    all_movies = graph.get_all_nodes()
+    random_movies = random.sample(all_movies, min(100, len(all_movies)))
 
-# Generate and display HTML
-st.info("Generating visualization...")
-with tempfile.TemporaryDirectory() as tmpdirname:
-    html_path = os.path.join(tmpdirname, "graph.html")
-    net.write_html(html_path)
-    with open(html_path, "r", encoding="utf-8") as f:
-        html = f.read()
-    st.components.v1.html(html, height=750, scrolling=True)
+    # Add nodes
+    for mid in random_movies:
+        md = graph.get_node_data(mid)
+        G.add_node(mid, title=md.get('title', str(mid)))
 
-st.write("Click a node to highlight its neighbors. Hover over nodes to see movie details.")
+    # Add edges between the selected movies
+    for mid in random_movies:
+        for nbr, wt in graph.get_neighbors(mid):
+            if nbr in random_movies:
+                G.add_edge(mid, nbr, weight=wt)
+
+    # Create pyvis network
+    net = Network(
+        height='800px', width='100%', bgcolor='#111111', font_color='white', cdn_resources='remote'
+    )
+
+    # Enable physics for better layout
+    net.toggle_physics(True)
+
+    # Add nodes with fixed positions and genre colors
+    for node in G.nodes():
+        attrs = G.nodes[node]
+        movie_data = graph.get_node_data(node)
+        title = movie_data.get('title', str(node))
+        primary = movie_data.get('genres', [None])[0]
+        color = GENRE_COLORS.get(primary, DEFAULT_COLOR)
+
+        # Add a tooltip with the 5 most similar movies
+        neighbors = graph.get_neighbors(node)
+        neighbors = sorted(neighbors, key=lambda x: x[1], reverse=True)[:5]  # Top 5 neighbors by weight
+        tooltip = f"<b>{title}</b><br>Most Similar Movies:<br>"
+        for neighbor_id, weight in neighbors:
+            neighbor_data = graph.get_node_data(neighbor_id)
+            tooltip += f"- {neighbor_data.get('title', 'Unknown')} (Similarity: {weight})<br>"
+
+        net.add_node(
+            node, 
+            label=title, 
+            title=tooltip,  # Tooltip with similar movies
+            color=color, 
+            size=20  # Increase node size for better visibility
+        )
+
+    # Add edges with weight-based width
+    for u, v, data in G.edges(data=True):
+        w = data['weight']
+        net.add_edge(u, v, width=w/5, title=f"Similarity: {w}/10")
+
+    # Generate and display HTML
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
+        net.save_graph(tmp.name)
+        html = open(tmp.name, 'r', encoding='utf-8').read()
+    st.components.v1.html(html, height=820, scrolling=True)
+    os.remove(tmp.name)
+
+except Exception as e:
+    st.error(f"Error generating graph: {e}")
