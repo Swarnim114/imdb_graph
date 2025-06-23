@@ -6,8 +6,6 @@ https://swarnim114.github.io/imdb_graph/
 
 https://github.com/user-attachments/assets/5d08796e-a7e5-432e-a41d-04919ce7d3d8
 
-
-
 ## Features
 
 - Interactive graph visualization of top IMDB movies
@@ -18,6 +16,38 @@ https://github.com/user-attachments/assets/5d08796e-a7e5-432e-a41d-04919ce7d3d8
 - Tooltips showing movie details and similar movies
 
 ## Project Structure
+
+The project follows a modular Python package structure:
+
+```text
+imdb_graph/
+├── data/                   # Data files
+│   ├── movie_graph.json    # Movie graph data (nodes and adjacency list)
+│   └── movies_data.json    # Raw movie data
+├── docs/                   # Documentation
+├── imdb_graph/             # Main package
+│   ├── core/               # Core graph functionality
+│   │   ├── graph.py        # Graph implementation
+│   │   └── graph_utils.py  # Graph utility functions
+│   ├── data/               # Data fetching modules
+│   │   └── data_fetch.py   # Movie data fetching script
+│   ├── static/             # Static resources
+│   │   ├── css/            # CSS styles
+│   │   └── js/             # JavaScript files
+│   ├── utils/              # Utility modules
+│   │   ├── constants.py    # Constants and configuration
+│   │   └── utils.py        # General utilities
+│   ├── visualization/      # Visualization modules
+│   │   ├── html_enhancer.py # HTML enhancement
+│   │   ├── network_builder.py # Network visualization builder
+│   │   └── visualize.py    # Main visualization interface
+│   ├── __init__.py         # Package initialization
+│   └── main.py             # Main entry point
+├── lib/                    # External libraries
+├── output/                 # Generated HTML visualizations
+├── templates/              # HTML templates
+├── requirements.txt        # Project dependencies
+└── setup.py                # Package setup script
 
 ```text
 imdb_graph/
@@ -42,6 +72,20 @@ imdb_graph/
 └── tests/                  # Test directory
 ```
 
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/imdb_graph.git
+cd imdb_graph
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install the package in development mode
+pip install -e .
+```
+
 ## Usage
 
 ### Building the Movie Graph
@@ -49,24 +93,26 @@ imdb_graph/
 To build the movie graph from raw data:
 
 ```bash
-python -m src.main build
-```
+# Using the Python module
+python -m imdb_graph.main build
 
-This process only needs to be done once to generate the graph data.
+# Or using the console script
+imdb-graph-build
+```
 
 ### Creating the Visualization
 
 To create an interactive visualization of the movie graph:
 
 ```bash
-# Create visualization with default 250 movies
-python -m src.main visualize
+# Using the Python module with default 250 movies
+python -m imdb_graph.main visualize
 
-# Create visualization with custom number of movies
-python -m src.main visualize 100
+# Using the console script with custom number of movies
+imdb-graph-visualize 100
 ```
 
-This will generate an HTML file (e.g., `250_movies.html`) that you can open in any modern web browser.
+This will generate an HTML file in the `output` directory that you can open in any modern web browser.
 
 ### Using the Visualization
 
@@ -82,12 +128,11 @@ This will generate an HTML file (e.g., `250_movies.html`) that you can open in a
 
 The codebase has been organized into modular components:
 
-- `constants.py`: Central location for configuration values
-- `graph_utils.py`: Functions for loading and processing graph data
-- `network_builder.py`: Functions for building network visualizations
-- `html_enhancer.py`: Functions to enhance HTML with search functionality
-- `static/`: Directory for static resources
-- `visualize.py`: Main interface for creating visualizations
+- `imdb_graph/core/`: Core graph data structures and algorithms
+- `imdb_graph/utils/`: Utility functions and constants
+- `imdb_graph/visualization/`: Visualization components
+- `imdb_graph/data/`: Data fetching and processing
+- `imdb_graph/static/`: Static resources (CSS, JS)
 
 This modular structure makes the code more maintainable and easier to extend.
 

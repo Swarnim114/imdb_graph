@@ -1,17 +1,19 @@
 import time
+import sys
+import os
 from pathlib import Path
 from pyvis.network import Network
 
-# Import modular components - use absolute imports for better compatibility
-from src.constants import NETWORK_OPTIONS
-from src.graph_utils import load_graph, prepare_similar_movies, JSON_PATH
-from src.network_builder import add_nodes_to_network, add_edges_to_network
-from src.html_enhancer import enhance_html_with_search as enhance_html
+# Import modular components from the new package structure
+from imdb_graph.utils.constants import NETWORK_OPTIONS
+from imdb_graph.core.graph_utils import load_graph, prepare_similar_movies
+from imdb_graph.visualization.network_builder import add_nodes_to_network, add_edges_to_network
+from imdb_graph.visualization.html_enhancer import enhance_html_with_search as enhance_html
 
-# These functions have been moved to other modules
-# See:
-# - graph_utils.py for load_graph and prepare_similar_movies
-# - network_builder.py for create_movie_tooltip, add_nodes_to_network, and add_edges_to_network
+# Define default paths
+DATA_DIR = Path(__file__).parent.parent.parent / "data"
+JSON_PATH = DATA_DIR / "movie_graph.json"
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
 
 def configure_network_options(net):
     """Configure the network visualization options.
@@ -28,40 +30,6 @@ def configure_network_options(net):
     # Set physics options and other network configurations using the constant
     net.set_options(NETWORK_OPTIONS)
 
-# These functions are not needed anymore since we're using the modular approach
-# def get_search_css():
-#     """Get the CSS for the search functionality.
-#     Deprecated: Now loaded from separate file.
-#     Returns:
-#         str: Empty string
-#     """
-#     return ""
-# 
-# def get_search_html():
-#     """Get the HTML for the search functionality.
-#     Deprecated: Now loaded from separate file.
-#     Returns:
-#         str: Empty string
-#     """
-#     return ""
-# 
-# def get_search_js():
-#     """Get the JavaScript for the search functionality.
-#     Deprecated: Now loaded from separate file.
-#     Returns:
-#         str: Empty string
-#     """
-#     return ""
-# 
-# # This function is not needed anymore
-# def enhance_html_with_search(filename):
-#     """Enhance the HTML file with search functionality.
-#     Deprecated: Use html_enhancer.enhance_html_with_search instead.
-#     """
-#     print("Warning: Using deprecated enhance_html_with_search function in visualize.py.")
-#     print("Please use the function from html_enhancer.py instead.")
-#     enhance_html(filename)
-
 def create_movie_network(movie_limit=250, output_filename=None):
     """Create a network visualization of movies.
     
@@ -72,10 +40,25 @@ def create_movie_network(movie_limit=250, output_filename=None):
     Returns:
         str: Path to the generated HTML file
     """
+    # Create output directory if it doesn't exist
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
     if output_filename is None:
-        output_filename = f"{movie_limit}_movies.html"
+        output_filename = OUTPUT_DIR / f"{movie_limit}_movies.html"
+    else:
+        # Make sure the output_filename is a Path object
+        output_filename = Path(output_filename)
+        if not output_filename.is_absolute():
+            output_filename = OUTPUT_DIR / output_filename
     
     print("Starting visualization process...")
+    
+    # Check if the graph data exists
+    if not JSON_PATH.exists():
+        print(f"Error: Graph data file not found at {JSON_PATH}")
+        print("Please run the graph building script first.")
+        return None
+    
     movie_graph = load_graph(JSON_PATH)
     
     # Create a Pyvis Network object
@@ -106,7 +89,10 @@ def create_movie_network(movie_limit=250, output_filename=None):
     # Generate the HTML file
     print(f"Generating HTML file: {output_filename}")
     start_time = time.time()
-    net.show(output_filename, notebook=False)
+    
+    # Convert Path to string if needed
+    output_path_str = str(output_filename)
+    net.show(output_path_str, notebook=False)
     
     # Enhance the HTML with search functionality
     enhance_html(output_filename)

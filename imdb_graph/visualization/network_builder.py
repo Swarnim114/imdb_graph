@@ -1,5 +1,5 @@
 import time
-from src.constants import GENRE_COLORS, DEFAULT_COLOR
+from imdb_graph.utils.constants import GENRE_COLORS, DEFAULT_COLOR
 
 def create_movie_tooltip(movie, idx, top_similar_movies, nodes_data):
     """Create a tooltip for a movie node.

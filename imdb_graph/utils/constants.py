@@ -1,3 +1,13 @@
+# Constants for the IMDB Movie Graph package
+from pathlib import Path
+
+# Project directories
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+OUTPUT_DIR = PROJECT_ROOT / "output"
+TEMPLATES_DIR = PROJECT_ROOT / "templates"
+DEFAULT_OUTPUT_DIR = OUTPUT_DIR
+
 # Genre color mapping
 GENRE_COLORS = {
     'Action': '#FF5733',
@@ -77,3 +87,6 @@ NETWORK_OPTIONS = '''{
     "enabled": false
   }
 }'''
+
+# Default color for nodes without a genre
+DEFAULT_COLOR = "#CCCCCC"

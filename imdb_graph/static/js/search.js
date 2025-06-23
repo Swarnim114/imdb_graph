@@ -1,3 +1,10 @@
+/**
+ * Search functionality for IMDB Movie Graph visualization.
+ * 
+ * This script adds interactive search capabilities to the movie graph,
+ * allowing users to find and highlight specific movies in the visualization.
+ */
+
 document.addEventListener('DOMContentLoaded', function() {
   // Get network instance after it's created
   setTimeout(() => {
@@ -77,38 +84,37 @@ document.addEventListener('DOMContentLoaded', function() {
                   // Highlight selected node with a much more vibrant color
                   nodes.update({
                       id: node.id,
-                      color: {
-                          background: '#00FFFF', // Bright cyan color for high visibility
-                          border: '#0000FF',     // Blue border
-                          highlight: {
-                              background: '#00FFFF',
-                              border: '#0000FF'
-                          }
-                      },
-                      borderWidth: 3,           // Thicker border
-                      size: 25                  // Slightly larger node
+                      color: '#FFFF00'
                   });
                   
-                  // Focus on the node with increased zoom
+                  // Focus on the selected node
                   network.focus(node.id, {
-                      scale: 15.0,              // Increased zoom level
+                      scale: 1.2,
                       animation: {
-                          duration: 1000,
+                          duration: 800,
                           easingFunction: 'easeInOutQuad'
                       }
                   });
                   
-                  // Highlight active result item
-                  document.querySelectorAll('.resultItem').forEach(item => {
-                      item.classList.remove('active');
-                  });
-                  resultItem.classList.add('active');
+                  // Add the highlight class for animation
+                  const nodeDOM = document.querySelector(`[data-id="${node.id}"]`);
+                  if (nodeDOM) {
+                      nodeDOM.classList.add('highlight');
+                      // Remove highlight class after animation completes
+                      setTimeout(() => {
+                          nodeDOM.classList.remove('highlight');
+                      }, 4500);
+                  }
               };
               searchResults.appendChild(resultItem);
           });
       } else {
           searchResults.style.display = 'block';
-          searchResults.innerHTML = '<div class="searchDescription">No movies found matching your search.</div>';
+          const noResults = document.createElement('div');
+          noResults.className = 'resultItem';
+          noResults.style.cursor = 'default';
+          noResults.textContent = 'No movies found';
+          searchResults.appendChild(noResults);
       }
     }
     
@@ -131,42 +137,56 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.key === 'Enter') {
         searchAndHighlight();
       } else if (searchInput.value.length >= 2) {
-        // Auto-search after typing 2+ characters (with small delay)
-        clearTimeout(searchInput.searchTimeout);
-        searchInput.searchTimeout = setTimeout(searchAndHighlight, 300);
-      }
-    });
-    
-    // Hide results when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!searchResults.contains(e.target) && e.target !== searchBtn && e.target !== searchInput) {
+        // Auto-search for 2+ characters
+        searchAndHighlight();
+      } else if (searchInput.value.length === 0) {
+        // Clear results when input is empty
         searchResults.style.display = 'none';
-      }
-    });
-    
-    // Focus search input when pressing '/' key
-    document.addEventListener('keydown', function(e) {
-      if (e.key === '/' && document.activeElement !== searchInput) {
-        e.preventDefault();
-        searchInput.focus();
-      }
-      
-      // ESC key to clear search and hide results
-      if (e.key === 'Escape') {
-        searchInput.value = '';
-        searchResults.style.display = 'none';
+        searchResults.innerHTML = '';
+        
         // Reset all nodes to original color
         nodes.getIds().forEach(id => {
-            const n = nodes.get(id);
-            nodes.update({
-                id: id,
-                color: n.originalColor
-            });
+            const node = nodes.get(id);
+            if (node.originalColor) {
+                nodes.update({
+                    id: id,
+                    color: node.originalColor
+                });
+            }
         });
       }
     });
     
-    // Add keyboard shortcut hint to placeholder
-    searchInput.placeholder = "Search for a movie... (Press '/' to focus)";
-  }, 1000); // Give time for the network to initialize
+    // Clear results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!searchContainer.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.style.display = 'none';
+      }
+    });
+    
+    // Add keyboard shortcut for search ('/' key)
+    document.addEventListener('keydown', function(e) {
+      // Check if user is not typing in an input field
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        searchInput.focus();
+      }
+      // ESC key to clear search and hide results
+      if (e.key === 'Escape') {
+        searchInput.value = '';
+        searchResults.style.display = 'none';
+        
+        // Reset all nodes to original color
+        nodes.getIds().forEach(id => {
+            const node = nodes.get(id);
+            if (node.originalColor) {
+                nodes.update({
+                    id: id,
+                    color: node.originalColor
+                });
+            }
+        });
+      }
+    });
+  }, 1000); // Wait for network to be initialized
 });

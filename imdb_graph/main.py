@@ -1,17 +1,45 @@
 import json
 import sys
-from src.graph import MovieGraph
+import os
+from pathlib import Path
+
+# Import from the new package structure
+from imdb_graph.core.graph import MovieGraph
+from imdb_graph.utils.constants import DEFAULT_OUTPUT_DIR
 
 THRESHOLD = 7  # Minimum similarity score to create an edge
 
+# Define default data paths
+DATA_DIR = Path(__file__).parent.parent / "data"
+MOVIES_DATA_PATH = DATA_DIR / "movies_data.json"
+MOVIE_GRAPH_PATH = DATA_DIR / "movie_graph.json"
+
 # Load movie data
-def load_movies(path):
-    with open(path, 'r') as f:
+def load_movies(path=MOVIES_DATA_PATH):
+    """Load movie data from JSON file.
+    
+    Args:
+        path: Path to the JSON file containing movie data
+        
+    Returns:
+        list: List of movie dictionaries
+    """
+    with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def main():
+    """Build the movie graph from raw data and save it to JSON."""
     print("Loading movies...")
-    movies = load_movies("data/movies_data.json")
+    
+    # Ensure data directory exists
+    os.makedirs(DATA_DIR, exist_ok=True)
+    
+    if not MOVIES_DATA_PATH.exists():
+        print(f"Error: Movie data file not found at {MOVIES_DATA_PATH}")
+        print("Please run the data fetch script first or provide the correct path.")
+        return
+    
+    movies = load_movies(MOVIES_DATA_PATH)
     print(f"Loaded {len(movies)} movies.")
 
     # Initialize the graph with the number of movies
@@ -33,12 +61,13 @@ def main():
             print(f"  - {neighbor['title']} (weight: {weight})")
 
     # Save the graph to JSON for later use
-    graph.save_to_json("data/movie_graph.json")
+    graph.save_to_json(MOVIE_GRAPH_PATH)
+    print(f"Graph saved to {MOVIE_GRAPH_PATH}")
 
 def visualize_graph():
     """Run the visualization module to create an interactive graph."""
     try:
-        from src.visualize import create_movie_network
+        from imdb_graph.visualization.visualize import create_movie_network
         
         # Default to 250 movies
         movie_limit = 250
@@ -62,7 +91,8 @@ def visualize_graph():
     except Exception as e:
         print(f"Error creating visualization: {e}")
 
-if __name__ == "__main__":
+def _run_command():
+    """Entry point for command-line usage."""
     command = "build"  # Default command
     
     # Check if a command was provided
@@ -78,6 +108,9 @@ if __name__ == "__main__":
         print("  build     - Build the movie graph from raw data")
         print("  visualize - Create a visualization of the movie graph")
         print("\nExample usage:")
-        print("  python -m src.main build")
-        print("  python -m src.main visualize")
-        print("  python -m src.main visualize 100  # Visualize with 100 movies")
+        print("  python -m imdb_graph.main build")
+        print("  python -m imdb_graph.main visualize")
+        print("  python -m imdb_graph.main visualize 100  # Visualize with 100 movies")
+
+if __name__ == "__main__":
+    _run_command()

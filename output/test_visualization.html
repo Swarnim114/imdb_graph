@@ -1,0 +1,673 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 100vh;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    <style>
+/*
+ * Search component styles for IMDB Movie Graph visualization.
+ * These styles provide the look and feel for the search interface
+ * that appears on top of the movie graph visualization.
+ */
+
+#searchContainer {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 15px;
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  width: 340px; /* Slightly wider to accommodate search button */
+}
+#searchInput {
+  flex: 1;
+  padding: 10px 15px;
+  border: 1px solid #444;
+  border-radius: 20px;
+  background-color: rgba(51, 51, 51, 0.8);
+  color: white;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  outline: none;
+  min-width: 0; /* Allows flex item to shrink below content size */
+}
+#searchInput:focus {
+  border-color: #3357FF;
+  box-shadow: 0 0 8px rgba(51, 87, 255, 0.6);
+}
+#searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+#searchBtn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  background-color: #3357FF;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+#searchBtn:hover {
+  background-color: #4367FF;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+#searchBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+#searchResults {
+  position: absolute;
+  top: 95px;
+  left: 20px;
+  z-index: 999;
+  background-color: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  width: 340px;
+  max-height: 70vh;
+  overflow-y: auto;
+  display: none;
+  padding: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #444 #222;
+}
+#searchResults::-webkit-scrollbar {
+  width: 8px;
+}
+#searchResults::-webkit-scrollbar-track {
+  background: #222;
+  border-radius: 10px;
+}
+#searchResults::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 10px;
+}
+.resultItem {
+  padding: 10px 15px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  color: #eee;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+.resultItem:hover {
+  background-color: #3357FF;
+  color: white;
+  transform: translateX(5px);
+}
+.resultItem:active {
+  transform: translateX(3px);
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(51, 87, 255, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(51, 87, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(51, 87, 255, 0); }
+}
+.highlight {
+  animation: pulse 1.5s infinite;
+}
+#searchTitle {
+  color: white;
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+.searchDescription {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 10px;
+}
+
+</style>
+</head>
+
+
+    <body>
+
+<div id="searchContainer">
+  <div style="width: 100%; margin-bottom: 10px;">
+    <h3 style="margin: 0 0 8px 0; color: white; font-size: 18px; font-weight: 500;">Movie Explorer</h3>
+    <div class="searchDescription">Search the graph by movie title</div>
+  </div>
+  <div style="display: flex; width: 100%; gap: 10px;">
+    <input type="text" id="searchInput" placeholder="Search for a movie...">
+    <button id="searchBtn">Search</button>
+  </div>
+</div>
+<div id="searchResults"></div>
+    
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#3357FF", "font": {"color": "white"}, "id": 0, "label": "The Shawshank Redemption", "shape": "dot", "size": 15, "title": "The Shawshank Redemption\nGenre: Drama\n\nTop Similar Movies:"}, {"color": "#3357FF", "font": {"color": "white"}, "id": 1, "label": "The Godfather", "shape": "dot", "size": 15, "title": "The Godfather\nGenre: Drama\n\nTop Similar Movies:\n1. The Godfather Part II (11.00)"}, {"color": "#3357FF", "font": {"color": "white"}, "id": 2, "label": "The Godfather Part II", "shape": "dot", "size": 15, "title": "The Godfather Part II\nGenre: Drama\n\nTop Similar Movies:\n1. The Godfather (11.00)"}]);
+                  edges = new vis.DataSet([{"from": 1, "title": "Similarity: 11.00", "to": 2, "width": 0.55}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"enabled": true, "hierarchicalRepulsion": {"centralGravity": 4, "avoidOverlap": null}, "maxVelocity": 5, "minVelocity": 1, "solver": "hierarchicalRepulsion", "timestep": 0.5}, "interaction": {"hover": true, "zoomView": true, "dragNodes": true, "navigationButtons": true, "keyboard": {"enabled": true, "speed": {"x": 10, "y": 10, "zoom": 0.02}, "bindToWindow": true}}, "search": true, "nodes": {"font": {"size": 14, "color": "white", "strokeWidth": 0, "strokeColor": "#333333"}, "shape": "dot"}, "edges": {"color": {"inherit": "from"}, "smooth": {"enabled": true, "type": "continuous", "roundness": 0.5}}, "configure": {"enabled": true, "filter": ["physics"]}, "manipulation": {"enabled": false}};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    <script type="text/javascript">
+/**
+ * Search functionality for IMDB Movie Graph visualization.
+ * 
+ * This script adds interactive search capabilities to the movie graph,
+ * allowing users to find and highlight specific movies in the visualization.
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Get network instance after it's created
+  setTimeout(() => {
+    const network = window.network;
+    if (!network) {
+      console.error("Network visualization not found");
+      return;
+    }
+    
+    const nodes = network.body.data.nodes;
+    
+    // Function to search and highlight nodes
+    function searchAndHighlight() {
+      const searchText = document.getElementById('searchInput').value.toLowerCase();
+      const searchResults = document.getElementById('searchResults');
+      searchResults.innerHTML = '';
+      
+      if (searchText.length < 2) {
+          searchResults.style.display = 'none';
+          return;
+      }
+      
+      // Clear any previous highlights
+      nodes.getIds().forEach(id => {
+          const node = nodes.get(id);
+          if (node.originalColor) {
+              nodes.update({
+                  id: id,
+                  color: node.originalColor
+              });
+          }
+      });
+      
+      // Find matching nodes
+      const matchingNodes = [];
+      nodes.getIds().forEach(id => {
+          const node = nodes.get(id);
+          if (node.label && node.label.toLowerCase().includes(searchText)) {
+              matchingNodes.push({
+                  id: id,
+                  label: node.label
+              });
+          }
+      });
+      
+      // Display results
+      if (matchingNodes.length > 0) {
+          searchResults.style.display = 'block';
+          const resultsTitle = document.createElement('div');
+          resultsTitle.id = 'searchTitle';
+          resultsTitle.textContent = `Found ${matchingNodes.length} movies`;
+          searchResults.appendChild(resultsTitle);
+          
+          matchingNodes.forEach(node => {
+              const resultItem = document.createElement('div');
+              resultItem.className = 'resultItem';
+              resultItem.textContent = node.label;
+              resultItem.onclick = function() {
+                  // Store original colors if not already stored
+                  nodes.getIds().forEach(id => {
+                      const n = nodes.get(id);
+                      if (!n.originalColor) {
+                          n.originalColor = n.color;
+                          nodes.update(n);
+                      }
+                  });
+                  
+                  // Reset all nodes to original color
+                  nodes.getIds().forEach(id => {
+                      const n = nodes.get(id);
+                      nodes.update({
+                          id: id,
+                          color: n.originalColor
+                      });
+                  });
+                  
+                  // Highlight selected node with a much more vibrant color
+                  nodes.update({
+                      id: node.id,
+                      color: '#FFFF00'
+                  });
+                  
+                  // Focus on the selected node
+                  network.focus(node.id, {
+                      scale: 1.2,
+                      animation: {
+                          duration: 800,
+                          easingFunction: 'easeInOutQuad'
+                      }
+                  });
+                  
+                  // Add the highlight class for animation
+                  const nodeDOM = document.querySelector(`[data-id="${node.id}"]`);
+                  if (nodeDOM) {
+                      nodeDOM.classList.add('highlight');
+                      // Remove highlight class after animation completes
+                      setTimeout(() => {
+                          nodeDOM.classList.remove('highlight');
+                      }, 4500);
+                  }
+              };
+              searchResults.appendChild(resultItem);
+          });
+      } else {
+          searchResults.style.display = 'block';
+          const noResults = document.createElement('div');
+          noResults.className = 'resultItem';
+          noResults.style.cursor = 'default';
+          noResults.textContent = 'No movies found';
+          searchResults.appendChild(noResults);
+      }
+    }
+    
+    // Save original colors for all nodes
+    nodes.getIds().forEach(id => {
+      const node = nodes.get(id);
+      node.originalColor = node.color;
+      nodes.update(node);
+    });
+    
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchResults = document.getElementById('searchResults');
+    
+    // Search button click handler
+    searchBtn.addEventListener('click', searchAndHighlight);
+    
+    // Handle enter key in search box
+    searchInput.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') {
+        searchAndHighlight();
+      } else if (searchInput.value.length >= 2) {
+        // Auto-search for 2+ characters
+        searchAndHighlight();
+      } else if (searchInput.value.length === 0) {
+        // Clear results when input is empty
+        searchResults.style.display = 'none';
+        searchResults.innerHTML = '';
+        
+        // Reset all nodes to original color
+        nodes.getIds().forEach(id => {
+            const node = nodes.get(id);
+            if (node.originalColor) {
+                nodes.update({
+                    id: id,
+                    color: node.originalColor
+                });
+            }
+        });
+      }
+    });
+    
+    // Clear results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!searchContainer.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.style.display = 'none';
+      }
+    });
+    
+    // Add keyboard shortcut for search ('/' key)
+    document.addEventListener('keydown', function(e) {
+      // Check if user is not typing in an input field
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        searchInput.focus();
+      }
+      // ESC key to clear search and hide results
+      if (e.key === 'Escape') {
+        searchInput.value = '';
+        searchResults.style.display = 'none';
+        
+        // Reset all nodes to original color
+        nodes.getIds().forEach(id => {
+            const node = nodes.get(id);
+            if (node.originalColor) {
+                nodes.update({
+                    id: id,
+                    color: node.originalColor
+                });
+            }
+        });
+      }
+    });
+  }, 1000); // Wait for network to be initialized
+});
+
+</script>
+</body>
+</html>

@@ -1,7 +1,0 @@
-# Similarity Weight Criteria for Movie Constellation Map
-
-- Genre: 3 points (if at least one genre overlaps)
-- Rating: 3 points (if ratings within 0.5)
-- Director: 2 points (if same director)
-- Actors: 1 point (if 2 or more actors overlap)
-- Year: 1 point (if years within 2)

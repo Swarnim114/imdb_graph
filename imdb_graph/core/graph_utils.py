@@ -2,8 +2,11 @@ import json
 import time
 from pathlib import Path
 
+# Import from the package
+from imdb_graph.utils.constants import DATA_DIR
+
 # Define the path to the JSON file
-JSON_PATH = Path(__file__).parent.parent / "data" / "movie_graph.json"
+JSON_PATH = DATA_DIR / "movie_graph.json"
 
 def load_graph(json_path=JSON_PATH):
     """Load the movie graph data from a JSON file.
