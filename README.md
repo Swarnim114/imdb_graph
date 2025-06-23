@@ -2,6 +2,12 @@
 
 This project creates interactive graph visualizations of movie relationships based on IMDB data. Movies are connected based on similarity, and the visualization includes a powerful search feature.
 
+
+
+https://github.com/user-attachments/assets/5d08796e-a7e5-432e-a41d-04919ce7d3d8
+
+
+
 ## Features
 
 - Interactive graph visualization of top IMDB movies
