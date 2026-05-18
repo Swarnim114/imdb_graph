@@ -66,4 +66,3 @@ This split keeps heavy computation in Python while leveraging a browser-native g
 - Use approximate nearest neighbors for scalable similarity.
 - Add faceted filters (year ranges, rating sliders).
 - Persist a search index for larger datasets.
-
