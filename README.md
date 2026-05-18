@@ -15,6 +15,13 @@ https://github.com/user-attachments/assets/5d08796e-a7e5-432e-a41d-04919ce7d3d8
 - Responsive UI with keyboard shortcuts
 - Tooltips showing movie details and similar movies
 
+## Interview-ready design notes
+
+If you want a concise 5–10 minute walkthrough of the design decisions (similarity
+scoring, graph representation, search behavior, and tooltips), see:
+
+- [`docs/interview_notes.md`](docs/interview_notes.md)
+
 ## Project Structure
 
 The project follows a modular Python package structure:

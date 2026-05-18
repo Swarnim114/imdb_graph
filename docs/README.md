@@ -7,6 +7,7 @@ This directory contains documentation for the IMDB Movie Graph project.
 - `migration_plan.md`: Plan for migrating from the old structure to the new package structure
 - `developer_guide.md`: Guide for developers who want to extend the project
 - `original_readme.md`: The original README from before the restructuring
+- `interview_notes.md`: Interview-focused design notes and talking points
 
 ## Project Architecture
 
@@ -32,6 +33,9 @@ The IMDB Movie Graph project is structured as a Python package with several modu
 - **PyVis Library**: Used for visualization due to its interactive features and HTML output
 - **Modular Structure**: Components are separated into modules for better maintainability
 - **Package-based Organization**: The project follows Python package conventions for better distribution
+
+For a deeper, interview-ready breakdown (similarity scoring, search, tooltips), see
+`interview_notes.md`.
 
 ## Future Development
 
